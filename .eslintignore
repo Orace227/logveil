@@ -1,4 +1,7 @@
-dist/
+node_modules/**
+dist/**
+coverage/**
+playground/**dist/
 node_modules/
 *.d.ts
 src/**/*.ts
