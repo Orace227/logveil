@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "rebuild": "npm run clean && npm run build",
+    "test": "node test.js",
+    "example:basic": "npm run build && npx ts-node examples/basic-usage.ts",
+    "example:winston": "npm run build && npx ts-node examples/winston-example.ts",
+    "prepublishOnly": "npm run build"
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/Orace227/logveil/discussions
+    about: Ask questions or discuss ideas
+  - name: Security Issue
+    url: https://github.com/Orace227/logveil/security/advisories/new
+    about: Report a security vulnerability privately

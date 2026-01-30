@@ -1,0 +1,73 @@
+{
+  "name": "logveil",
+  "version": "1.1.0",
+  "description": "Privacy-first logging utility that masks PII and PHI data before logs are written",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node test.js",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "lint:ts": "eslint src --ext .ts",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,json,md}\"",
+    "audit:check": "npm audit --audit-level=high",
+    "prepare": "husky",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "logging",
+    "privacy",
+    "pii",
+    "phi",
+    "masking",
+    "winston",
+    "gdpr",
+    "hipaa",
+    "security"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "npm-audit-ci": "^1.2.1",
+    "prettier": "^3.8.1",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "winston": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "winston": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Orace227/logveil.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
