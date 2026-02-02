@@ -1,6 +1,6 @@
 {
   "name": "logveil",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Privacy-first logging utility that masks PII and PHI data before logs are written",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,6 +8,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "node test.js",
+    "test:custom-patterns": "node test-custom-patterns.js",
+    "test:all": "npm run test && npm run test:custom-patterns",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "lint:ts": "eslint src --ext .ts",
@@ -15,7 +17,7 @@
     "format:check": "prettier --check \"**/*.{js,ts,json,md}\"",
     "audit:check": "npm audit --audit-level=high",
     "prepare": "husky",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm run test:all"
   },
   "keywords": [
     "logging",

@@ -1,64 +1,64 @@
-import * as crypto from 'crypto';
-import { MaskingStrategy, FieldMaskingRule, Environment, FieldType } from './types';
+import * as crypto from "crypto";
+import { MaskingStrategy, FieldMaskingRule, Environment, FieldType } from "./types";
 
 /**
  * Default environment-to-strategy mappings
  */
 export const DEFAULT_PII_ENVIRONMENT_MAPPING = {
-  development: 'partial' as MaskingStrategy,
-  staging: 'full' as MaskingStrategy,
-  production: 'hash' as MaskingStrategy
+  development: "partial" as MaskingStrategy,
+  staging: "full" as MaskingStrategy,
+  production: "hash" as MaskingStrategy
 };
 
 export const DEFAULT_PHI_ENVIRONMENT_MAPPING = {
-  development: 'full' as MaskingStrategy,
-  staging: 'full' as MaskingStrategy,
-  production: 'hash' as MaskingStrategy
+  development: "full" as MaskingStrategy,
+  staging: "full" as MaskingStrategy,
+  production: "hash" as MaskingStrategy
 };
 
 /**
  * Apply partial masking to a string value
  */
 export function partialMask(value: string): string {
-  if (typeof value !== 'string' || value.length === 0) {
-    return '********';
+  if (typeof value !== "string" || value.length === 0) {
+    return "********";
   }
 
   // Email handling
-  if (value.includes('@')) {
-    const [localPart, domain] = value.split('@');
+  if (value.includes("@")) {
+    const [localPart, domain] = value.split("@");
     const visibleChars = Math.min(2, Math.floor(localPart.length / 3));
-    const maskedLocal = localPart.substring(0, visibleChars) + '****';
+    const maskedLocal = localPart.substring(0, visibleChars) + "****";
     return `${maskedLocal}@${domain}`;
   }
 
   // Phone number handling
   if (/^[\+\-\(\)\s\d]+$/.test(value)) {
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, "");
     if (digits.length >= 4) {
       const lastFour = digits.slice(-4);
-      return '*'.repeat(digits.length - 4) + lastFour;
+      return "*".repeat(digits.length - 4) + lastFour;
     }
   }
 
   // Generic string - show first 2 chars
   const visibleChars = Math.min(2, Math.floor(value.length / 3));
-  return value.substring(0, visibleChars) + '****';
+  return value.substring(0, visibleChars) + "****";
 }
 
 /**
  * Apply full masking
  */
 export function fullMask(_value: any): string {
-  return '********';
+  return "********";
 }
 
 /**
  * Apply hash masking using SHA-256
  */
-export function hashMask(value: any, algorithm: string = 'sha256'): string {
-  const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-  const hash = crypto.createHash(algorithm).update(stringValue).digest('hex');
+export function hashMask(value: any, algorithm: string = "sha256"): string {
+  const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+  const hash = crypto.createHash(algorithm).update(stringValue).digest("hex");
   return `<hashed:${hash.substring(0, 16)}>`;
 }
 
@@ -75,16 +75,16 @@ export function removeMask(): undefined {
 export function applyMaskingStrategy(
   value: any,
   strategy: MaskingStrategy,
-  hashAlgorithm: string = 'sha256'
+  hashAlgorithm: string = "sha256"
 ): any {
   switch (strategy) {
-    case 'partial':
-      return typeof value === 'string' ? partialMask(value) : fullMask(value);
-    case 'full':
+    case "partial":
+      return typeof value === "string" ? partialMask(value) : fullMask(value);
+    case "full":
       return fullMask(value);
-    case 'hash':
+    case "hash":
       return hashMask(value, hashAlgorithm);
-    case 'remove':
+    case "remove":
       return removeMask();
     default:
       return fullMask(value);
@@ -100,18 +100,18 @@ export function getMaskingStrategy(
   customPIIMapping?: Record<string, MaskingStrategy>,
   customPHIMapping?: Record<string, MaskingStrategy>
 ): MaskingStrategy {
-  if (fieldType === 'phi') {
+  if (fieldType === "phi") {
     const mapping = customPHIMapping || DEFAULT_PHI_ENVIRONMENT_MAPPING;
     return mapping[env] || DEFAULT_PHI_ENVIRONMENT_MAPPING[env];
   }
 
-  if (fieldType === 'pii') {
+  if (fieldType === "pii") {
     const mapping = customPIIMapping || DEFAULT_PII_ENVIRONMENT_MAPPING;
     return mapping[env] || DEFAULT_PII_ENVIRONMENT_MAPPING[env];
   }
 
   // Default for custom fields
-  return 'full';
+  return "full";
 }
 
 /**
@@ -126,8 +126,8 @@ export class MaskingRules {
 
   constructor(
     rules: FieldMaskingRule[] = [],
-    env: Environment = 'production',
-    hashAlgorithm: string = 'sha256',
+    env: Environment = "production",
+    hashAlgorithm: string = "sha256",
     piiMapping?: Record<string, MaskingStrategy>,
     phiMapping?: Record<string, MaskingStrategy>
   ) {
@@ -143,7 +143,7 @@ export class MaskingRules {
    */
   public findRule(fieldName: string): FieldMaskingRule | null {
     for (const rule of this.rules) {
-      if (typeof rule.field === 'string') {
+      if (typeof rule.field === "string") {
         if (rule.field.toLowerCase() === fieldName.toLowerCase()) {
           return rule;
         }
@@ -172,7 +172,7 @@ export class MaskingRules {
     }
 
     // Default
-    return 'full';
+    return "full";
   }
 
   /**
@@ -202,5 +202,12 @@ export class MaskingRules {
    */
   public getRules(): FieldMaskingRule[] {
     return [...this.rules];
+  }
+
+  /**
+   * Apply a specific masking strategy to a value (for custom patterns)
+   */
+  public applyCustomStrategy(value: any, strategy: MaskingStrategy, hashAlgorithm?: string): any {
+    return applyMaskingStrategy(value, strategy, hashAlgorithm || this.hashAlgorithm);
   }
 }
