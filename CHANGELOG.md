@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-02-02
+
+### Fixed
+
+- **Custom Pattern Environment-Based Masking** - Fixed custom patterns not respecting environment-based default masking strategies for value-based masking
+  - Custom patterns without explicit `maskingStrategy` now correctly use environment defaults (`piiEnvironmentMapping` / `phiEnvironmentMapping`)
+  - Fixed `detectFieldType()` using substring matching instead of exact matching, which caused entire fields to be masked when patterns were embedded in strings
+  - Fixed `maskStringValue()` to use environment-based strategies from MaskingRules instead of hardcoded values
+  - Example: `{ description: "PM1234 is working" }` now correctly masks as `"<hashed:...> is working"` in production instead of entire field
+  - Affects custom patterns with `fieldType: "pii"` or `fieldType: "phi"` in value-based masking contexts
+
+### Changed
+
+- Updated `Detector` class to accept optional `MaskingRules` instance for environment-aware masking
+- Changed initialization order in `Masker` to create `MaskingRules` before `Detector`
+- Enhanced `maskStringValue()` to respect custom environment mappings for PII/PHI patterns
+
 ## [1.2.1] - 2026-02-02
 
 ### Changed
