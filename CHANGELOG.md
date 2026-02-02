@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-02
+
+### Added
+
+- **Custom Pattern Matching** - Major new feature allowing users to define custom regex patterns for domain-specific sensitive data
+  - `CustomPattern` interface with support for custom regex patterns, field types, and masking strategies
+  - Optional custom masking functions for specialized masking logic
+  - Runtime pattern management: `addCustomPattern()`, `removeCustomPattern()`, `clearCustomPatterns()`
+  - Custom patterns work in both field-level detection and string value scanning
+  - Support for 'pii', 'phi', and 'custom' field types
+  - Environment-based strategy defaults when `maskingStrategy` is omitted
+  - Complete TypeScript support with proper exports
+
+### Fixed
+
+- **Field Name Detection Bug** - Fixed false positives where field names containing PII keywords were incorrectly flagged
+  - Example: "description" was flagged as PII because it contains "ip"
+  - Now uses word boundaries for accurate field name matching
+  - Affects fields like "subscription", "transcription", etc.
+- **String Value Masking for Custom Patterns** - Fixed custom patterns not working in embedded string contexts
+  - Custom patterns with anchors (^...$) now correctly match embedded values
+  - Example: "The ID ABC123 is working" now masks only "ABC123" instead of the entire string
+
+### Changed
+
+- Updated field name detection to use word boundaries instead of simple string inclusion
+- Enhanced string value masking to properly handle custom patterns with start/end anchors
+- Improved pattern detection precedence: exact field matches vs embedded pattern matches
+
 ## [1.1.0] - 2026-01-30
 
 ### Added

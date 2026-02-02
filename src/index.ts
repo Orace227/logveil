@@ -4,9 +4,9 @@
  */
 
 // Core exports
-export { Masker } from './core/masker';
-export { Detector } from './core/detectors';
-export { MaskingRules } from './core/rules';
+export { Masker } from "./core/masker";
+export { Detector } from "./core/detectors";
+export { MaskingRules } from "./core/rules";
 
 // Type exports
 export type {
@@ -19,11 +19,12 @@ export type {
   CreateMaskedLoggerOptions,
   DetectedField,
   MaskingResult,
-  DetectionPattern
-} from './core/types';
+  DetectionPattern,
+  CustomPattern
+} from "./core/types";
 
 // Adapter exports
-export { createMaskedWinstonLogger, createMaskingFormat } from './adapters/winston';
+export { createMaskedWinstonLogger, createMaskingFormat } from "./adapters/winston";
 
 // Utility exports
 export {
@@ -33,15 +34,15 @@ export {
   removeMask,
   applyMaskingStrategy,
   getMaskingStrategy
-} from './core/rules';
+} from "./core/rules";
 
-export { PII_PATTERNS, PHI_PATTERNS, COMMON_PII_FIELDS, COMMON_PHI_FIELDS } from './core/detectors';
+export { PII_PATTERNS, PHI_PATTERNS, COMMON_PII_FIELDS, COMMON_PHI_FIELDS } from "./core/detectors";
 
 /**
  * Convenience function to create a masker instance
  */
-import { Masker } from './core/masker';
-import { MaskingConfig } from './core/types';
+import { Masker } from "./core/masker";
+import { MaskingConfig } from "./core/types";
 
 export function createMasker(config?: MaskingConfig): Masker {
   return new Masker(config);

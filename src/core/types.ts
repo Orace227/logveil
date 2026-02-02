@@ -1,17 +1,17 @@
 /**
  * Masking strategy types
  */
-export type MaskingStrategy = 'partial' | 'full' | 'hash' | 'remove';
+export type MaskingStrategy = "partial" | "full" | "hash" | "remove";
 
 /**
  * Environment types that determine default masking behavior
  */
-export type Environment = 'development' | 'staging' | 'production';
+export type Environment = "development" | "staging" | "production";
 
 /**
  * Field types for classification
  */
-export type FieldType = 'pii' | 'phi' | 'custom';
+export type FieldType = "pii" | "phi" | "custom";
 
 /**
  * Configuration for individual field masking
@@ -97,6 +97,12 @@ export interface MaskingConfig {
    * Preserve field structure (use placeholder instead of removing)
    */
   preserveStructure?: boolean;
+
+  /**
+   * Custom patterns for user-defined field detection
+   * These patterns will be checked in addition to built-in PII/PHI patterns
+   */
+  customPatterns?: CustomPattern[];
 }
 
 /**
@@ -116,7 +122,8 @@ export interface DetectedField {
   path: string;
   type: FieldType;
   value: any;
-  strategy: MaskingStrategy;
+  strategy: MaskingStrategy | "custom";
+  customPattern?: string;
 }
 
 /**
@@ -135,4 +142,40 @@ export interface DetectionPattern {
   name: string;
   pattern: RegExp;
   fieldType: FieldType;
+}
+
+/**
+ * Custom pattern for user-defined field detection
+ */
+export interface CustomPattern {
+  /**
+   * Unique name for the pattern
+   */
+  name: string;
+
+  /**
+   * Regular expression pattern to match field values
+   */
+  pattern: RegExp;
+
+  /**
+   * Field type classification (pii, phi, or custom)
+   */
+  fieldType: FieldType;
+
+  /**
+   * Optional masking strategy specific to this pattern
+   * If not provided, will use environment-based defaults
+   */
+  maskingStrategy?: MaskingStrategy;
+
+  /**
+   * Optional custom masking function for this pattern
+   */
+  customMask?: (value: any) => any;
+
+  /**
+   * Optional description for documentation purposes
+   */
+  description?: string;
 }

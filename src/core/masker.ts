@@ -1,6 +1,6 @@
-import { MaskingConfig, MaskingResult, DetectedField, FieldType } from './types';
-import { Detector } from './detectors';
-import { MaskingRules } from './rules';
+import { MaskingConfig, MaskingResult, DetectedField, FieldType, CustomPattern } from "./types";
+import { Detector } from "./detectors";
+import { MaskingRules } from "./rules";
 
 /**
  * Core masking engine that traverses and masks sensitive data
@@ -17,7 +17,7 @@ export class Masker {
   constructor(config: MaskingConfig = {}) {
     // Set defaults
     this.config = {
-      env: config.env || 'production',
+      env: config.env || "production",
       piiFields: config.piiFields || [],
       phiFields: config.phiFields || [],
       maskingRules: config.maskingRules || [],
@@ -25,11 +25,12 @@ export class Masker {
       phiEnvironmentMapping: config.phiEnvironmentMapping || {},
       detectPII: config.detectPII !== undefined ? config.detectPII : true,
       maskStringValues: config.maskStringValues !== undefined ? config.maskStringValues : true,
-      hashAlgorithm: config.hashAlgorithm || 'sha256',
-      preserveStructure: config.preserveStructure !== undefined ? config.preserveStructure : true
+      hashAlgorithm: config.hashAlgorithm || "sha256",
+      preserveStructure: config.preserveStructure !== undefined ? config.preserveStructure : true,
+      customPatterns: config.customPatterns || []
     };
 
-    this.detector = new Detector();
+    this.detector = new Detector(this.config.customPatterns);
     this.rules = new MaskingRules(
       this.config.maskingRules,
       this.config.env,
@@ -45,7 +46,7 @@ export class Masker {
     this.phiPatterns = [];
 
     this.config.piiFields.forEach((field) => {
-      if (typeof field === 'string') {
+      if (typeof field === "string") {
         this.piiFieldSet.add(field.toLowerCase());
       } else {
         this.piiPatterns.push(field);
@@ -53,7 +54,7 @@ export class Masker {
     });
 
     this.config.phiFields.forEach((field) => {
-      if (typeof field === 'string') {
+      if (typeof field === "string") {
         this.phiFieldSet.add(field.toLowerCase());
       } else {
         this.phiPatterns.push(field);
@@ -97,10 +98,10 @@ export class Masker {
   private getFieldType(fieldName: string, value: any): FieldType | null {
     // Check configured fields first
     if (this.isPHIField(fieldName)) {
-      return 'phi';
+      return "phi";
     }
     if (this.isPIIField(fieldName)) {
-      return 'pii';
+      return "pii";
     }
 
     // Auto-detection if enabled
@@ -112,10 +113,17 @@ export class Masker {
   }
 
   /**
+   * Get custom pattern that matches the value
+   */
+  private getCustomPattern(value: any): any {
+    return this.detector.getMatchingCustomPattern(value);
+  }
+
+  /**
    * Deep clone an object to avoid mutation
    */
   private deepClone<T>(obj: T): T {
-    if (obj === null || typeof obj !== 'object') {
+    if (obj === null || typeof obj !== "object") {
       return obj;
     }
 
@@ -144,13 +152,13 @@ export class Masker {
   /**
    * Recursively mask sensitive fields in an object
    */
-  private maskObject(obj: any, path: string = '', detectedFields: DetectedField[] = []): any {
+  private maskObject(obj: any, path: string = "", detectedFields: DetectedField[] = []): any {
     if (obj === null || obj === undefined) {
       return obj;
     }
 
     // Handle primitives
-    if (typeof obj !== 'object') {
+    if (typeof obj !== "object") {
       return obj;
     }
 
@@ -173,44 +181,69 @@ export class Masker {
 
       // If it's a sensitive field
       if (fieldType) {
-        const strategy = this.rules.getStrategy(key, fieldType);
-        const maskedValue = this.rules.maskValue(key, value, fieldType);
+        let maskedValue;
+        let strategy;
+
+        // Check if value matches a custom pattern with specific masking rules
+        const customPattern = this.getCustomPattern(value);
+        if (customPattern && customPattern.fieldType === fieldType) {
+          // Use custom pattern's specific masking strategy or function
+          if (customPattern.customMask) {
+            maskedValue = customPattern.customMask(value);
+            strategy = "custom";
+          } else if (customPattern.maskingStrategy) {
+            strategy = customPattern.maskingStrategy;
+            maskedValue = this.rules.applyCustomStrategy(
+              value,
+              strategy,
+              this.config.hashAlgorithm
+            );
+          } else {
+            strategy = this.rules.getStrategy(key, fieldType);
+            maskedValue = this.rules.maskValue(key, value, fieldType);
+          }
+        } else {
+          // Use standard field masking
+          strategy = this.rules.getStrategy(key, fieldType);
+          maskedValue = this.rules.maskValue(key, value, fieldType);
+        }
 
         // Track detected field
         detectedFields.push({
           path: currentPath,
           type: fieldType,
           value: value,
-          strategy: strategy
+          strategy: strategy,
+          customPattern: customPattern?.name
         });
 
         // Handle 'remove' strategy
-        if (strategy === 'remove') {
+        if (strategy === "remove") {
           if (this.config.preserveStructure) {
-            masked[key] = '<removed>';
+            masked[key] = "<removed>";
           }
           // else: don't add the key at all
         } else {
           masked[key] = maskedValue;
         }
-      } else if (typeof value === 'object' && value !== null) {
+      } else if (typeof value === "object" && value !== null) {
         // Recursively process nested objects/arrays
         masked[key] = this.maskObject(value, currentPath, detectedFields);
-      } else if (typeof value === 'string' && this.config.maskStringValues) {
+      } else if (typeof value === "string" && this.config.maskStringValues) {
         // Mask PII/PHI patterns within string values
         const strategy =
-          this.config.env === 'production'
-            ? 'hash'
-            : this.config.env === 'staging'
-              ? 'full'
-              : 'partial';
+          this.config.env === "production"
+            ? "hash"
+            : this.config.env === "staging"
+              ? "full"
+              : "partial";
         const maskedString = this.detector.maskStringValue(value, strategy);
 
         // Only mark as processed if something was actually masked
         if (maskedString !== value) {
           detectedFields.push({
             path: currentPath,
-            type: 'pii',
+            type: "pii",
             value: value,
             strategy: strategy
           });
@@ -242,7 +275,7 @@ export class Masker {
     const detectedFields: DetectedField[] = [];
 
     // Perform masking
-    const masked = this.maskObject(cloned, '', detectedFields);
+    const masked = this.maskObject(cloned, "", detectedFields);
 
     return {
       masked,
@@ -262,8 +295,12 @@ export class Masker {
       phiFields: config.phiFields || this.config.phiFields,
       maskingRules: config.maskingRules || this.config.maskingRules,
       piiEnvironmentMapping: config.piiEnvironmentMapping || this.config.piiEnvironmentMapping,
-      phiEnvironmentMapping: config.phiEnvironmentMapping || this.config.phiEnvironmentMapping
+      phiEnvironmentMapping: config.phiEnvironmentMapping || this.config.phiEnvironmentMapping,
+      customPatterns: config.customPatterns || this.config.customPatterns
     };
+
+    // Rebuild detector with updated custom patterns
+    this.detector = new Detector(this.config.customPatterns);
 
     // Rebuild rules engine
     this.rules = new MaskingRules(
@@ -280,5 +317,40 @@ export class Masker {
    */
   public getConfig(): Readonly<Required<MaskingConfig>> {
     return { ...this.config };
+  }
+
+  /**
+   * Add a custom pattern for detection and masking
+   */
+  public addCustomPattern(pattern: CustomPattern): void {
+    this.config.customPatterns.push(pattern);
+    this.detector.addCustomPattern(pattern);
+  }
+
+  /**
+   * Remove a custom pattern by name
+   */
+  public removeCustomPattern(name: string): boolean {
+    const index = this.config.customPatterns.findIndex((p) => p.name === name);
+    if (index !== -1) {
+      this.config.customPatterns.splice(index, 1);
+      return this.detector.removeCustomPattern(name);
+    }
+    return false;
+  }
+
+  /**
+   * Get all custom patterns
+   */
+  public getCustomPatterns(): CustomPattern[] {
+    return this.detector.getCustomPatterns();
+  }
+
+  /**
+   * Clear all custom patterns
+   */
+  public clearCustomPatterns(): void {
+    this.config.customPatterns = [];
+    this.detector.clearCustomPatterns();
   }
 }

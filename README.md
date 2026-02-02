@@ -32,12 +32,12 @@ npm install logveil winston
 ### Basic Usage
 
 ```typescript
-import { mask } from 'logveil';
+import { mask } from "logveil";
 
 const data = {
-  email: 'john@gmail.com',
-  phone: '+919999999999',
-  message: 'Hello world'
+  email: "john@gmail.com",
+  phone: "+919999999999",
+  message: "Hello world"
 };
 
 const masked = mask(data);
@@ -48,8 +48,8 @@ console.log(masked);
 ### With Winston
 
 ```typescript
-import winston from 'winston';
-import { createMaskedWinstonLogger } from 'logveil';
+import winston from "winston";
+import { createMaskedWinstonLogger } from "logveil";
 
 const baseLogger = winston.createLogger({
   transports: [new winston.transports.Console()]
@@ -57,16 +57,16 @@ const baseLogger = winston.createLogger({
 
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: 'production',
-  piiFields: ['email', 'phone', 'ssn'],
-  phiFields: ['patientId', 'diagnosis', 'medication']
+  env: "production",
+  piiFields: ["email", "phone", "ssn"],
+  phiFields: ["patientId", "diagnosis", "medication"]
 });
 
-logger.info('User created', {
-  email: 'john@gmail.com',
-  phone: '+919999999999',
-  patientId: 'PAT-12345',
-  name: 'John Doe' // Not masked
+logger.info("User created", {
+  email: "john@gmail.com",
+  phone: "+919999999999",
+  patientId: "PAT-12345",
+  name: "John Doe" // Not masked
 });
 
 // Output:
@@ -124,8 +124,8 @@ LogVeil can detect and mask PII/PHI patterns **within string values** - not just
 ### The Problem
 
 ```typescript
-logger.info('User created', {
-  description: 'User email is testing@gmail.com and phone is +919999999999'
+logger.info("User created", {
+  description: "User email is testing@gmail.com and phone is +919999999999"
 });
 ```
 
@@ -134,16 +134,16 @@ The `description` field isn't sensitive, but the **value contains PII**!
 ### The Solution
 
 ```typescript
-import { createMasker } from 'logveil';
+import { createMasker } from "logveil";
 
 const masker = createMasker({
-  env: 'development',
+  env: "development",
   maskStringValues: true // Enable value-level masking (default: true)
 });
 
 const data = {
-  description: 'Contact at john@gmail.com or call +919999999999',
-  notes: 'SSN: 123-45-6789, Card: 4532-1234-5678-9010'
+  description: "Contact at john@gmail.com or call +919999999999",
+  notes: "SSN: 123-45-6789, Card: 4532-1234-5678-9010"
 };
 
 const result = masker.mask(data);
@@ -188,12 +188,12 @@ const masker = createMasker({
 Different environments can use different strategies:
 
 ```typescript
-import { createMaskedWinstonLogger } from 'logveil';
+import { createMaskedWinstonLogger } from "logveil";
 
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: process.env.NODE_ENV as 'development' | 'staging' | 'production',
-  piiFields: ['email', 'phone']
+  env: process.env.NODE_ENV as "development" | "staging" | "production",
+  piiFields: ["email", "phone"]
   // Default mappings:
   // development → partial
   // staging → full
@@ -206,12 +206,12 @@ Custom environment mappings:
 ```typescript
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: 'production',
-  piiFields: ['email'],
+  env: "production",
+  piiFields: ["email"],
   piiEnvironmentMapping: {
-    development: 'partial',
-    staging: 'hash',
-    production: 'remove'
+    development: "partial",
+    staging: "hash",
+    production: "remove"
   }
 });
 ```
@@ -221,25 +221,25 @@ const logger = createMaskedWinstonLogger({
 ### Core Masker
 
 ```typescript
-import { Masker } from 'logveil';
+import { Masker } from "logveil";
 
 const masker = new Masker({
-  env: 'production',
-  piiFields: ['email', 'phone', 'ssn', /.*password.*/i],
-  phiFields: ['patientId', 'diagnosis', 'medicalRecordNumber'],
+  env: "production",
+  piiFields: ["email", "phone", "ssn", /.*password.*/i],
+  phiFields: ["patientId", "diagnosis", "medicalRecordNumber"],
   detectPII: true, // Auto-detect common PII patterns
-  hashAlgorithm: 'sha256',
+  hashAlgorithm: "sha256",
   preserveStructure: true, // Keep removed fields with '<removed>' placeholder
 
   // Custom per-field rules
   maskingRules: [
     {
-      field: 'creditCard',
-      strategy: 'partial',
+      field: "creditCard",
+      strategy: "partial",
       customMask: (value) => {
         // Show last 4 digits only
-        const cleaned = value.replace(/\D/g, '');
-        return '**** **** **** ' + cleaned.slice(-4);
+        const cleaned = value.replace(/\D/g, "");
+        return "**** **** **** " + cleaned.slice(-4);
       }
     }
   ]
@@ -258,11 +258,94 @@ Use RegExp for flexible field matching:
 ```typescript
 const masker = new Masker({
   piiFields: [
-    'email',
+    "email",
     /.*password.*/i, // Matches: password, userPassword, PASSWORD
     /^api[_-]?key$/i // Matches: apiKey, api_key, API-KEY
   ]
 });
+```
+
+### Custom Patterns
+
+Add your own regex patterns for domain-specific sensitive data:
+
+```typescript
+import { Masker, CustomPattern } from "logveil";
+
+const customPatterns: CustomPattern[] = [
+  {
+    name: "employeeId",
+    pattern: /^EMP-[A-Z]{2}-\d{4}$/i,
+    fieldType: "pii",
+    maskingStrategy: "partial",
+    description: "Company employee ID format: EMP-XX-1234"
+  },
+  {
+    name: "projectCode",
+    pattern: /^PROJ-[A-Z]{3}-\d{3}$/i,
+    fieldType: "custom",
+    maskingStrategy: "hash"
+  },
+  {
+    name: "customerAccount",
+    pattern: /^ACC-\d{8}$/i,
+    fieldType: "pii",
+    customMask: (value: string) => `ACC-*****${value.slice(-3)}`,
+    description: "Customer account: ACC-12345678"
+  }
+];
+
+const masker = new Masker({
+  env: "production",
+  customPatterns,
+  detectPII: true
+});
+
+// Add patterns at runtime
+masker.addCustomPattern({
+  name: "sessionToken",
+  pattern: /^SESSION-[A-F0-9]{40}$/i,
+  fieldType: "custom",
+  maskingStrategy: "remove"
+});
+
+const data = {
+  employee: "EMP-US-1234",
+  account: "ACC-87654321",
+  session: "SESSION-A1B2C3D4E5F6789012345678901234567890ABCD"
+};
+
+const result = masker.mask(data);
+// {
+//   employee: 'EM****-1234',
+//   account: 'ACC-*****321',
+//   session: '<removed>' // Removed but structure preserved
+// }
+```
+
+#### Custom Pattern Options
+
+- `name`: Unique identifier for the pattern
+- `pattern`: RegExp to match field values
+- `fieldType`: 'pii', 'phi', or 'custom'
+- `maskingStrategy`: Strategy to apply (optional)
+- `customMask`: Custom masking function (optional)
+- `description`: Documentation (optional)
+
+#### Managing Custom Patterns
+
+```typescript
+// Add pattern
+masker.addCustomPattern(pattern);
+
+// Remove pattern
+masker.removeCustomPattern("employeeId");
+
+// Get all patterns
+const patterns = masker.getCustomPatterns();
+
+// Clear all patterns
+masker.clearCustomPatterns();
 ```
 
 ## Built-in Detectors
@@ -295,24 +378,24 @@ LogVeil automatically detects common patterns:
 ### Custom Masking Functions
 
 ```typescript
-import { createMasker } from 'logveil';
+import { createMasker } from "logveil";
 
 const masker = createMasker({
   maskingRules: [
     {
-      field: 'creditCard',
-      strategy: 'partial',
+      field: "creditCard",
+      strategy: "partial",
       customMask: (value) => {
         const last4 = value.slice(-4);
         return `**** **** **** ${last4}`;
       }
     },
     {
-      field: 'dateOfBirth',
-      strategy: 'partial',
+      field: "dateOfBirth",
+      strategy: "partial",
       customMask: (value) => {
         // Show only year
-        return value.split('-')[0] + '-**-**';
+        return value.split("-")[0] + "-**-**";
       }
     }
   ]
@@ -327,21 +410,21 @@ LogVeil automatically handles nested structures:
 const data = {
   user: {
     profile: {
-      email: 'john@gmail.com',
-      phone: '+919999999999'
+      email: "john@gmail.com",
+      phone: "+919999999999"
     },
     preferences: {
-      theme: 'dark'
+      theme: "dark"
     }
   },
   contacts: [
-    { email: 'alice@example.com', name: 'Alice' },
-    { email: 'bob@example.com', name: 'Bob' }
+    { email: "alice@example.com", name: "Alice" },
+    { email: "bob@example.com", name: "Bob" }
   ]
 };
 
 const masked = mask(data, {
-  piiFields: ['email', 'phone']
+  piiFields: ["email", "phone"]
 });
 
 // All email fields are masked, regardless of depth
@@ -352,15 +435,15 @@ const masked = mask(data, {
 Use as a Winston format for more control:
 
 ```typescript
-import winston from 'winston';
-import { createMaskingFormat } from 'logveil';
+import winston from "winston";
+import { createMaskingFormat } from "logveil";
 
 const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp(),
     createMaskingFormat({
-      env: 'production',
-      piiFields: ['email', 'phone']
+      env: "production",
+      piiFields: ["email", "phone"]
     }) as any,
     winston.format.json()
   ),
@@ -416,7 +499,7 @@ Create a Winston logger with automatic masking.
 
 ```typescript
 interface MaskingConfig {
-  env?: 'development' | 'staging' | 'production';
+  env?: "development" | "staging" | "production";
   piiFields?: Array<string | RegExp>;
   phiFields?: Array<string | RegExp>;
   maskingRules?: FieldMaskingRule[];
@@ -433,38 +516,38 @@ interface MaskingConfig {
 ### Example 1: Healthcare Application
 
 ```typescript
-import { createMaskedWinstonLogger } from 'logveil';
-import winston from 'winston';
+import { createMaskedWinstonLogger } from "logveil";
+import winston from "winston";
 
 const logger = createMaskedWinstonLogger({
   logger: winston.createLogger({
-    transports: [new winston.transports.File({ filename: 'app.log' })]
+    transports: [new winston.transports.File({ filename: "app.log" })]
   }),
-  env: 'production',
-  phiFields: ['patientId', 'medicalRecordNumber', 'diagnosis', 'medication', 'labResults'],
-  piiFields: ['email', 'phone', 'ssn', 'address']
+  env: "production",
+  phiFields: ["patientId", "medicalRecordNumber", "diagnosis", "medication", "labResults"],
+  piiFields: ["email", "phone", "ssn", "address"]
 });
 
-logger.info('Patient record accessed', {
-  patientId: 'PAT-12345',
-  diagnosis: 'Hypertension',
-  email: 'patient@email.com',
-  accessedBy: 'Dr. Smith' // Not masked
+logger.info("Patient record accessed", {
+  patientId: "PAT-12345",
+  diagnosis: "Hypertension",
+  email: "patient@email.com",
+  accessedBy: "Dr. Smith" // Not masked
 });
 ```
 
 ### Example 2: E-commerce Platform
 
 ```typescript
-import { createMasker } from 'logveil';
+import { createMasker } from "logveil";
 
 const masker = createMasker({
-  env: 'production',
-  piiFields: ['email', 'phone', 'address'],
+  env: "production",
+  piiFields: ["email", "phone", "address"],
   maskingRules: [
     {
-      field: 'creditCard',
-      strategy: 'partial',
+      field: "creditCard",
+      strategy: "partial",
       customMask: (value) => {
         const last4 = value.slice(-4);
         return `****-****-****-${last4}`;
@@ -473,9 +556,9 @@ const masker = createMasker({
   ]
 });
 
-app.post('/checkout', (req, res) => {
+app.post("/checkout", (req, res) => {
   const result = masker.mask(req.body);
-  logger.info('Checkout initiated', result.masked);
+  logger.info("Checkout initiated", result.masked);
 });
 ```
 
@@ -484,15 +567,15 @@ app.post('/checkout', (req, res) => {
 ```typescript
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: 'development',
-  piiFields: ['email', 'phone'],
+  env: "development",
+  piiFields: ["email", "phone"],
   piiEnvironmentMapping: {
-    development: 'partial' // Show partial data in dev for debugging
+    development: "partial" // Show partial data in dev for debugging
   }
 });
 
-logger.debug('User login', {
-  email: 'developer@company.com', // → 'de****@company.com'
+logger.debug("User login", {
+  email: "developer@company.com", // → 'de****@company.com'
   loginTime: new Date()
 });
 ```
