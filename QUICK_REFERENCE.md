@@ -10,25 +10,25 @@ npm install logveil
 
 ```typescript
 // ES6/TypeScript
-import { mask, createMasker, createMaskedWinstonLogger } from 'logveil';
+import { mask, createMasker, createMaskedWinstonLogger } from "logveil";
 
 // CommonJS
-const { mask, createMasker, createMaskedWinstonLogger } = require('logveil');
+const { mask, createMasker, createMaskedWinstonLogger } = require("logveil");
 ```
 
 ## Quick Masking
 
 ```typescript
-const masked = mask(data, { env: 'production', piiFields: ['email'] });
+const masked = mask(data, { env: "production", piiFields: ["email"] });
 ```
 
 ## Reusable Masker
 
 ```typescript
 const masker = createMasker({
-  env: 'production',
-  piiFields: ['email', 'phone'],
-  phiFields: ['patientId']
+  env: "production",
+  piiFields: ["email", "phone"],
+  phiFields: ["patientId"]
 });
 
 const result = masker.mask(data);
@@ -40,11 +40,11 @@ console.log(result.masked);
 ```typescript
 const logger = createMaskedWinstonLogger({
   logger: winstonLogger,
-  env: 'production',
-  piiFields: ['email', 'phone']
+  env: "production",
+  piiFields: ["email", "phone"]
 });
 
-logger.info('Message', { email: 'test@example.com' });
+logger.info("Message", { email: "test@example.com" });
 ```
 
 ## Masking Strategies
@@ -96,8 +96,8 @@ piiFields: [
 ```typescript
 maskingRules: [
   {
-    field: 'creditCard',
-    strategy: 'partial',
+    field: "creditCard",
+    strategy: "partial",
     customMask: (value) => {
       const last4 = value.slice(-4);
       return `****-****-****-${last4}`;
@@ -133,9 +133,9 @@ maskingRules: [
 
 ```typescript
 createMasker({
-  env: 'production',
-  phiFields: ['patientId', 'diagnosis', 'medication'],
-  piiFields: ['email', 'phone', 'ssn']
+  env: "production",
+  phiFields: ["patientId", "diagnosis", "medication"],
+  piiFields: ["email", "phone", "ssn"]
 });
 ```
 
@@ -143,9 +143,9 @@ createMasker({
 
 ```typescript
 createMasker({
-  env: 'production',
-  piiFields: ['email', 'phone'],
-  maskingRules: [{ field: /credit.*card/i, strategy: 'remove' }]
+  env: "production",
+  piiFields: ["email", "phone"],
+  maskingRules: [{ field: /credit.*card/i, strategy: "remove" }]
 });
 ```
 
@@ -153,7 +153,7 @@ createMasker({
 
 ```typescript
 createMasker({
-  env: 'production',
+  env: "production",
   piiFields: [/.*password.*/i, /.*key$/i, /.*token$/i]
 });
 ```
@@ -201,7 +201,7 @@ import type {
   Environment,
   FieldMaskingRule,
   MaskingResult
-} from 'logveil';
+} from "logveil";
 ```
 
 ## Examples Location

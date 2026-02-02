@@ -1,5 +1,5 @@
-import { Masker } from '../core/masker';
-import { CreateMaskedLoggerOptions } from '../core/types';
+import { Masker } from "../core/masker";
+import { CreateMaskedLoggerOptions } from "../core/types";
 
 /**
  * Winston logger type interface (minimal definition to avoid hard dependency)
@@ -29,7 +29,7 @@ export function createMaskedWinstonLogger(
    */
   const maskMetadata = (...meta: any[]): any[] => {
     return meta.map((item) => {
-      if (item && typeof item === 'object') {
+      if (item && typeof item === "object") {
         const result = masker.mask(item);
         return result.masked;
       }
@@ -88,7 +88,7 @@ export function createMaskedWinstonLogger(
       const originalValue = logger[prop as string];
 
       // If it's a logging method, wrap it
-      if (typeof originalValue === 'function') {
+      if (typeof originalValue === "function") {
         return (...args: any[]) => {
           const maskedArgs = maskMetadata(...args);
           return originalValue.apply(logger, maskedArgs);
@@ -104,7 +104,7 @@ export function createMaskedWinstonLogger(
  * Alternative: Winston Format function for use with winston.format.combine()
  * This can be used directly in Winston's format pipeline
  */
-export function createMaskingFormat(maskingConfig: Omit<CreateMaskedLoggerOptions<any>, 'logger'>) {
+export function createMaskingFormat(maskingConfig: Omit<CreateMaskedLoggerOptions<any>, "logger">) {
   const masker = new Masker(maskingConfig);
 
   return {

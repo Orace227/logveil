@@ -167,7 +167,7 @@ When making changes that affect the public API:
 // In src/core/detectors.ts
 export const COMMON_PII_FIELDS = [
   // ...existing fields
-  'passportNumber' // Add new field
+  "passportNumber" // Add new field
 ];
 ```
 
@@ -175,9 +175,9 @@ export const COMMON_PII_FIELDS = [
 
 ```typescript
 // In src/core/rules.ts
-export function hashMask(value: any, algorithm: string = 'sha256'): string {
+export function hashMask(value: any, algorithm: string = "sha256"): string {
   // Support multiple algorithms
-  const hash = crypto.createHash(algorithm).update(stringValue).digest('hex');
+  const hash = crypto.createHash(algorithm).update(stringValue).digest("hex");
   return `<hashed:${hash.substring(0, 16)}>`;
 }
 ```
@@ -186,8 +186,8 @@ export function hashMask(value: any, algorithm: string = 'sha256'): string {
 
 ```typescript
 // In src/adapters/pino.ts
-import { Masker } from '../core/masker';
-import { CreateMaskedLoggerOptions } from '../core/types';
+import { Masker } from "../core/masker";
+import { CreateMaskedLoggerOptions } from "../core/types";
 
 export function createMaskedPinoLogger(options: CreateMaskedLoggerOptions<PinoLogger>): PinoLogger {
   const { logger, ...maskingConfig } = options;

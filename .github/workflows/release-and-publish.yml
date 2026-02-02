@@ -1,0 +1,177 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Triggers on version tags like v1.2.0
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run all tests
+        run: npm run test:all
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Security audit
+        run: npm run audit:check
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: write
+    outputs:
+      release-notes: ${{ steps.extract-changelog.outputs.notes }}
+      version: ${{ steps.extract-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for changelog
+
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Extract changelog for this version
+        id: extract-changelog
+        run: |
+          VERSION=${{ steps.extract-version.outputs.version }}
+          echo "Extracting changelog for version $VERSION"
+
+          # Extract changelog section for this version
+          CHANGELOG=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+
+          if [ -z "$CHANGELOG" ]; then
+            echo "No changelog found for version $VERSION, using default"
+            cat << 'CHANGELOG_EOF' > /tmp/default_changelog.md
+          ## What's New in v$VERSION
+
+          🚀 **New Features & Improvements**
+          - Custom pattern matching capabilities
+          - Enhanced PII/PHI detection
+          - Runtime pattern management
+          - Improved masking strategies
+
+          🐛 **Bug Fixes**
+          - Fixed field name false positives
+          - Improved string value masking
+          - Enhanced pattern detection accuracy
+
+          📚 **Documentation**
+          - Updated API reference
+          - Added usage examples
+          - Comprehensive guides
+
+          For detailed changes, see the [CHANGELOG.md](https://github.com/Orace227/logveil/blob/main/CHANGELOG.md)
+          CHANGELOG_EOF
+            CHANGELOG=$(envsubst < /tmp/default_changelog.md)
+          fi
+
+          # Save to output (handle multiline)
+          {
+            echo 'notes<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "LogVeil v${{ steps.extract-version.outputs.version }}"
+          body: ${{ steps.extract-changelog.outputs.notes }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true # GitHub auto-generates additional notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm-publish:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    needs: [test, github-release]
+    permissions:
+      contents: read
+      id-token: write # Required for npm provenance
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify package contents
+        run: |
+          echo "📦 Package contents:"
+          npm pack --dry-run
+          echo ""
+          echo "📋 Package info:"
+          npm info . --json
+
+      - name: Publish to NPM
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify success
+        run: |
+          echo "🎉 Successfully published logveil@${{ needs.github-release.outputs.version }} to NPM!"
+          echo "📦 Package: https://www.npmjs.com/package/logveil"
+          echo "🏷️ Version: ${{ needs.github-release.outputs.version }}"
+
+  notify-completion:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    needs: [github-release, npm-publish]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ needs.github-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Release:** ${{ needs.github-release.result == 'success' && '✅ Created' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**NPM Publish:** ${{ needs.npm-publish.result == 'success' && '✅ Published' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Release](https://github.com/Orace227/logveil/releases/tag/v${{ needs.github-release.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [NPM Package](https://www.npmjs.com/package/logveil)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Changelog](https://github.com/Orace227/logveil/blob/main/CHANGELOG.md)" >> $GITHUB_STEP_SUMMARY

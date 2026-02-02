@@ -58,16 +58,16 @@ npm install logveil
 ### Basic Usage
 
 ```typescript
-import { mask } from 'logveil';
+import { mask } from "logveil";
 
 const data = {
-  email: 'user@example.com',
-  name: 'John'
+  email: "user@example.com",
+  name: "John"
 };
 
 const masked = mask(data, {
-  env: 'production',
-  piiFields: ['email']
+  env: "production",
+  piiFields: ["email"]
 });
 
 console.log(masked);
@@ -77,21 +77,21 @@ console.log(masked);
 ### With Winston
 
 ```typescript
-import winston from 'winston';
-import { createMaskedWinstonLogger } from 'logveil';
+import winston from "winston";
+import { createMaskedWinstonLogger } from "logveil";
 
 const logger = createMaskedWinstonLogger({
   logger: winston.createLogger({
     transports: [new winston.transports.Console()]
   }),
-  env: 'production',
-  piiFields: ['email', 'phone'],
-  phiFields: ['patientId', 'diagnosis']
+  env: "production",
+  piiFields: ["email", "phone"],
+  phiFields: ["patientId", "diagnosis"]
 });
 
-logger.info('User action', {
-  email: 'user@example.com', // Masked
-  action: 'login' // Not masked
+logger.info("User action", {
+  email: "user@example.com", // Masked
+  action: "login" // Not masked
 });
 ```
 
@@ -143,9 +143,9 @@ logger.info('User action', {
 ```typescript
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: 'production',
-  phiFields: ['patientId', 'diagnosis', 'medication'],
-  piiFields: ['email', 'phone', 'ssn']
+  env: "production",
+  phiFields: ["patientId", "diagnosis", "medication"],
+  piiFields: ["email", "phone", "ssn"]
 });
 ```
 
@@ -153,11 +153,11 @@ const logger = createMaskedWinstonLogger({
 
 ```typescript
 const masker = createMasker({
-  env: 'production',
-  piiFields: ['email', 'phone'],
+  env: "production",
+  piiFields: ["email", "phone"],
   maskingRules: [
-    { field: /credit.*card/i, strategy: 'remove' },
-    { field: 'cvv', strategy: 'remove' }
+    { field: /credit.*card/i, strategy: "remove" },
+    { field: "cvv", strategy: "remove" }
   ]
 });
 ```
@@ -167,9 +167,9 @@ const masker = createMasker({
 ```typescript
 const logger = createMaskedWinstonLogger({
   logger: baseLogger,
-  env: 'production',
-  piiFields: ['ssn', 'accountNumber', 'routingNumber'],
-  piiEnvironmentMapping: { production: 'hash' }
+  env: "production",
+  piiFields: ["ssn", "accountNumber", "routingNumber"],
+  piiEnvironmentMapping: { production: "hash" }
 });
 ```
 

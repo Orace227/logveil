@@ -1,0 +1,158 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 1.3.0)"
+        required: true
+        type: string
+      release-type:
+        description: "Type of release"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      create-tag:
+        description: "Create git tag"
+        required: true
+        default: true
+        type: boolean
+      publish-npm:
+        description: "Publish to NPM"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.setup.outputs.version }}
+      tag: ${{ steps.setup.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup version and tag
+        id: setup
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v${VERSION}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          echo "Tag: $TAG"
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+
+      - name: Run all tests
+        run: |
+          npm run build
+          npm run test:all
+          npm run lint
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.setup.outputs.version }}"
+          git push origin main
+
+      - name: Create tag
+        if: ${{ github.event.inputs.create-tag == 'true' }}
+        run: |
+          git tag ${{ steps.setup.outputs.tag }}
+          git push origin ${{ steps.setup.outputs.tag }}
+
+  release:
+    name: Create Release and Publish
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    if: ${{ github.event.inputs.create-tag == 'true' }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.tag }}
+          name: "LogVeil v${{ needs.prepare-release.outputs.version }}"
+          body: |
+            ## LogVeil v${{ needs.prepare-release.outputs.version }}
+
+            This is a manual release of LogVeil.
+
+            ### 📦 Installation
+            ```bash
+            npm install logveil@${{ needs.prepare-release.outputs.version }}
+            ```
+
+            ### 📚 Documentation
+            - [README](https://github.com/Orace227/logveil#readme)
+            - [Changelog](https://github.com/Orace227/logveil/blob/main/CHANGELOG.md)
+            - [API Reference](https://github.com/Orace227/logveil/blob/main/QUICK_REFERENCE.md)
+
+            For detailed changes and migration guide, see the [CHANGELOG.md](https://github.com/Orace227/logveil/blob/main/CHANGELOG.md).
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to NPM
+        if: ${{ github.event.inputs.publish-npm == 'true' }}
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Success summary
+        run: |
+          echo "## 🎉 Manual Release Completed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ needs.prepare-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Release:** ✅ Created" >> $GITHUB_STEP_SUMMARY
+          echo "**NPM Publish:** ${{ github.event.inputs.publish-npm == 'true' && '✅ Published' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Package Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Release](https://github.com/Orace227/logveil/releases/tag/v${{ needs.prepare-release.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [NPM Package](https://www.npmjs.com/package/logveil)" >> $GITHUB_STEP_SUMMARY

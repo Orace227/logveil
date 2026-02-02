@@ -160,16 +160,16 @@ Example:
 export const PII_PATTERNS: DetectionPattern[] = [
   // ...existing patterns
   {
-    name: 'passport',
+    name: "passport",
     pattern: /^[A-Z]{1,2}\d{6,9}$/,
-    fieldType: 'pii'
+    fieldType: "pii"
   }
 ];
 
 export const COMMON_PII_FIELDS = [
   // ...existing fields
-  'passport',
-  'passportNumber'
+  "passport",
+  "passportNumber"
 ];
 ```
 
@@ -184,8 +184,8 @@ export const COMMON_PII_FIELDS = [
 Template:
 
 ```typescript
-import { Masker } from '../core/masker';
-import { CreateMaskedLoggerOptions } from '../core/types';
+import { Masker } from "../core/masker";
+import { CreateMaskedLoggerOptions } from "../core/types";
 
 interface PinoLogger {
   info(msg: string, ...args: any[]): void;
@@ -200,7 +200,7 @@ export function createMaskedPinoLogger(options: CreateMaskedLoggerOptions<PinoLo
   // Implement wrapper
   return {
     info(msg: string, ...args: any[]): void {
-      const masked = args.map((arg) => (typeof arg === 'object' ? masker.mask(arg).masked : arg));
+      const masked = args.map((arg) => (typeof arg === "object" ? masker.mask(arg).masked : arg));
       logger.info(msg, ...masked);
     }
     // ... other methods
@@ -227,15 +227,15 @@ node test.js
 Add new test cases:
 
 ```javascript
-console.log('✅ Test: Your Feature');
+console.log("✅ Test: Your Feature");
 const data = {
   /* test data */
 };
 const masked = mask(data, {
   /* config */
 });
-console.log('Result:', masked);
-console.log('');
+console.log("Result:", masked);
+console.log("");
 ```
 
 ## Pull Request Guidelines

@@ -1,6 +1,7 @@
 /**
  * LogVeil - Privacy-first logging utility
  * Masks PII and PHI data before logs are written
+ * Version 1.2.1 - With automated release system
  */
 
 // Core exports
