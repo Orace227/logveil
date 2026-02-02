@@ -30,7 +30,6 @@ export class Masker {
       customPatterns: config.customPatterns || []
     };
 
-    this.detector = new Detector(this.config.customPatterns);
     this.rules = new MaskingRules(
       this.config.maskingRules,
       this.config.env,
@@ -38,6 +37,7 @@ export class Masker {
       this.config.piiEnvironmentMapping as any,
       this.config.phiEnvironmentMapping as any
     );
+    this.detector = new Detector(this.config.customPatterns, this.rules);
 
     // Separate string fields from regex patterns
     this.piiFieldSet = new Set<string>();
@@ -231,12 +231,8 @@ export class Masker {
         masked[key] = this.maskObject(value, currentPath, detectedFields);
       } else if (typeof value === "string" && this.config.maskStringValues) {
         // Mask PII/PHI patterns within string values
-        const strategy =
-          this.config.env === "production"
-            ? "hash"
-            : this.config.env === "staging"
-              ? "full"
-              : "partial";
+        // Use environment-based strategy for PII by default
+        const strategy = this.rules.getStrategy("", "pii");
         const maskedString = this.detector.maskStringValue(value, strategy);
 
         // Only mark as processed if something was actually masked

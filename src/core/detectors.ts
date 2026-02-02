@@ -1,4 +1,5 @@
 import { DetectionPattern, FieldType, CustomPattern } from "./types";
+import type { MaskingRules } from "./rules";
 
 /**
  * Built-in PII detection patterns
@@ -109,11 +110,13 @@ export class Detector {
   private piiPatterns: DetectionPattern[];
   private phiPatterns: DetectionPattern[];
   private customPatterns: CustomPattern[];
+  private rules?: MaskingRules;
 
-  constructor(customPatterns: CustomPattern[] = []) {
+  constructor(customPatterns: CustomPattern[] = [], rules?: MaskingRules) {
     this.piiPatterns = [...PII_PATTERNS];
     this.phiPatterns = [...PHI_PATTERNS];
     this.customPatterns = [...customPatterns];
+    this.rules = rules;
   }
 
   /**
@@ -222,7 +225,9 @@ export class Detector {
     }
 
     // Check custom patterns first (user-defined take precedence)
-    const customPattern = this.detectCustomValue(value);
+    // Use exact match for field-level detection to avoid masking entire field
+    // when pattern is just embedded in the string
+    const customPattern = this.detectExactCustomValue(value);
     if (customPattern) {
       return customPattern.fieldType;
     }
@@ -306,10 +311,13 @@ export class Detector {
    * Example: "Email: test@gmail.com" → "Email: t****@gmail.com"
    *
    * @param value - The string to scan and mask
-   * @param strategy - Masking strategy to apply
+   * @param strategy - Masking strategy to apply (fallback if pattern has no strategy)
    * @returns Masked string with PII/PHI patterns replaced
    */
-  public maskStringValue(value: string, strategy: "partial" | "full" | "hash" = "partial"): string {
+  public maskStringValue(
+    value: string,
+    strategy: "partial" | "full" | "hash" | "remove" = "partial"
+  ): string {
     if (typeof value !== "string" || value.length === 0) {
       return value;
     }
@@ -344,6 +352,10 @@ export class Detector {
           return customPattern.customMask(matchedText);
         } else if (customPattern.maskingStrategy) {
           return this.applyMaskingToMatch(matchedText, customPattern.maskingStrategy);
+        } else if (this.rules) {
+          // Use environment-based strategy from rules engine
+          const envStrategy = this.rules.getStrategy("", customPattern.fieldType);
+          return this.applyMaskingToMatch(matchedText, envStrategy);
         } else {
           return this.applyMaskingToMatch(matchedText, strategy);
         }
