@@ -1,6 +1,6 @@
 {
   "name": "logveil",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Privacy-first logging utility that masks PII and PHI data before logs are written",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
